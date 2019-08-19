@@ -1,7 +1,7 @@
 
 
 # Curve fitting
-# https://davetang.org/muse/2013/05/09/on-curve-fitting/
+# https://davetang.org/muse/2013/05/09/on-curve-fitting/ ------
 
 
 x <- c(32,64,96,118,126,144,152.5,158)
