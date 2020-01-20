@@ -1,0 +1,89 @@
+---
+title: "Korn - Modeling Changes over time"
+output: html_notebook
+---
+
+Simulation Code for Time Series analysis using Regression State Space Models  (RSSM)
+
+# Data Prep 
+```{r}
+packages <- c("glmnet","mgcv", "compiler", "rstan", "StanHeaders")
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())), dependencies = TRUE)  
+}
+library( glmnet )
+library( mgcv )
+library( compiler )
+library( StanHeaders) # https://cran.r-project.org/bin/windows/contrib/4.0/StanHeaders_2.19.0.zip backup
+library( rstan )
+
+```
+
+# Function prep
+```{r}
+# logit functions for later
+logit <- function(x) log( x / ( 1 - x ) )
+ilogit <- function(x) exp(x) / ( 1 + exp(x) )
+
+# function for creating dummy variables that include a column for every single value (unlike the default behavior in GLMs that leave out one value).
+# this is needed for penalized regression (i.e. credibility models), since every segment is credibility weighted back towards the intercept (mean)
+contr.pen <- function( n, contrasts=TRUE, sparse=FALSE ) contr.treatment( n, contrasts=contrasts, sparse=sparse )
+contr.pen.sparse <- function( n, contrasts=TRUE, sparse=TRUE ) contr.treatment( n, contrasts=contrasts, sparse=sparse )
+
+
+# function for creating dummy variables for implementing random walks
+contr.randwalk <- function( n, contrasts = TRUE, sparse = TRUE, momentum=0, rel.cred=1, stdize=TRUE ) {
+  if (length(n) <= 1L) {
+    if (is.numeric(n) && length(n) == 1L && n > 1L)
+    levels <- seq_len(n)
+    else stop("not enough degrees of freedom to define contrasts")
+  } else { levels <- n }
+  
+  levels <- as.character(levels)
+  
+  if ( sparse ) {
+  cont <- Matrix( c(0), nrow=length(levels), ncol=length(levels) - 1, sparse=TRUE )
+  } else {
+  cont <- matrix( c(0), nrow=length(levels), ncol=length(levels) - 1 )
+  }
+
+  for ( i in 2:n ) {
+  cont[, i - 1] <- ifelse( 1:n < i, 0, ifelse( rep( momentum, n ) == 1, ( 1:n - i + 1 ), ( 1 - momentum ^ ( 1:n - i + 1   ) ) / ( 1 - momentum ) ) )
+  cont[, i - 1] <- cont[, i - 1] - mean( cont[, i - 1] )
+  }
+  if (contrasts) {
+  colnames(cont) <- levels[-1]
+  }
+
+  # standardize
+  if ( stdize ) {
+    for ( i in 1:ncol(cont) ) {
+    cont[,i] <- cont[,i] / sum( diff( cont[,i] ) ^ 2 ) ^ 0.5
+    }
+  }
+  cont <- cont * rel.cred
+  cont
+}
+
+```
+
+
+..... to continue
+
+
+
+
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
